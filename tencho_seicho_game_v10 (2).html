@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>店長成長ゲーム</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f5f5f7;color:#1d1d1f;}
+.app{max-width:480px;margin:0 auto;padding:12px;}
+.ttl{font-size:17px;font-weight:700;text-align:center;margin-bottom:10px;}
+.nav{display:flex;gap:4px;margin-bottom:10px;background:#fff;border-radius:12px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.nav-btn{flex:1;padding:7px 4px;font-size:11px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:transparent;color:#888;}
+.nav-btn.on{background:#534AB7;color:#fff;}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+.grp{font-size:10px;color:#888;font-weight:600;margin:4px 0 2px;width:100%;}
+.tb{flex:1;min-width:72px;padding:6px 4px;font-size:11px;font-weight:500;background:#fff;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;color:#888;text-align:center;line-height:1.3;}
+.tb.on{background:#534AB7;color:#fff;border-color:#534AB7;}
+.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.sec-title{font-size:11px;font-weight:600;color:#888;margin-bottom:8px;}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
+.char-stage{display:flex;flex-direction:column;align-items:center;padding:10px 0 4px;}
+.char-name-row{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.char-name{font-size:17px;font-weight:600;}
+.role-b{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.role-t{background:#EEEDFE;color:#3C3489;}
+.role-f{background:#E1F5EE;color:#085041;}
+.shop-lbl{font-size:11px;color:#888;margin-top:2px;}
+.form-name{font-size:12px;color:#888;margin-top:1px;}
+.pts-big{font-size:28px;font-weight:700;margin-top:4px;}
+.speech{position:relative;background:#f5f5f7;border-radius:12px;padding:8px 12px;font-size:12px;margin-top:8px;width:100%;text-align:center;}
+.speech::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:#f5f5f7;}
+/* バッジエリア */
+.badge-strip{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px;padding:8px 0;}
+.badge-item{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.badge-star{font-size:22px;line-height:1;}
+.badge-label{font-size:9px;color:#888;text-align:center;}
+/* bars */
+.bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.bar-lbl{font-size:11px;color:#888;width:48px;flex-shrink:0;}
+.bar-bg{flex:1;background:#efefef;border-radius:4px;height:7px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s;}
+.bar-val{font-size:11px;color:#888;width:24px;text-align:right;}
+/* GAP table */
+.gap-table{width:100%;border-collapse:collapse;font-size:11px;}
+.gap-table th{background:#f5f5f7;padding:5px 6px;text-align:center;font-weight:600;color:#666;border-bottom:1px solid #e8e8e8;}
+.gap-table th:first-child{text-align:left;}
+.gap-table td{padding:5px 6px;text-align:center;border-bottom:1px solid #f0f0f0;color:#444;}
+.gap-table td:first-child{text-align:left;font-weight:500;}
+.gap-pos{color:#0F6E56;font-weight:600;}
+.gap-neg{color:#A32D2D;font-weight:600;}
+/* calendar */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.cal-month{font-size:13px;font-weight:600;}
+.cal-nav{background:none;border:1px solid #e0e0e0;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:13px;color:#534AB7;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{text-align:center;font-size:10px;font-weight:600;color:#888;padding:3px 0;}
+.cal-dow.sun{color:#E8453C;}.cal-dow.sat{color:#1E6FDE;}
+.cal-day{text-align:center;padding:3px 1px;font-size:11px;border-radius:6px;cursor:pointer;min-height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid transparent;background:#f9f9f9;}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default;}
+.cal-day.today{border-color:#534AB7;}
+.cal-day.work{background:#E1F5EE;border-color:#5DCAA5;}
+.cal-day.off{background:#FCEBEB;border-color:#F09595;}
+.cal-day.sun-txt{color:#E8453C;}.cal-day.sat-txt{color:#1E6FDE;}
+.cal-day-num{font-size:11px;font-weight:500;line-height:1;}
+.cal-day-lbl{font-size:8px;line-height:1;}
+.cal-day.work .cal-day-lbl{color:#085041;}
+.cal-day.off .cal-day-lbl{color:#A32D2D;}
+.cal-legend{display:flex;gap:10px;margin-top:6px;font-size:10px;color:#888;justify-content:flex-end;}
+.cal-legend span{display:flex;align-items:center;gap:3px;}
+.cal-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+.neglect{background:#FAECE7;border:1px solid #F0997B;border-radius:10px;padding:8px 12px;font-size:12px;color:#993C1D;margin-bottom:8px;display:none;text-align:center;}
+/* todo */
+.todo-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0;}
+.todo-item:last-child{border-bottom:none;}
+.todo-cb{width:20px;height:20px;border-radius:6px;border:2px solid #d0d0d0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.todo-cb.done{background:#534AB7;border-color:#534AB7;color:#fff;}
+.todo-txt{font-size:12px;flex:1;line-height:1.4;}
+.todo-txt.done{text-decoration:line-through;color:#bbb;}
+.todo-pts{font-size:10px;font-weight:600;color:#0F6E56;flex-shrink:0;}
+.todo-input-row{display:flex;gap:6px;margin-top:8px;}
+.todo-input{flex:1;font-size:12px;padding:7px 10px;border:1px solid #e0e0e0;border-radius:8px;outline:none;}
+.todo-add-btn{padding:7px 12px;background:#534AB7;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;}
+/* evo */
+.evo-track{display:flex;align-items:center;justify-content:center;gap:3px;margin:8px 0;flex-wrap:wrap;}
+.ed{width:34px;height:34px;border-radius:50%;border:2px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaa;background:#f9f9f9;text-align:center;line-height:1.2;}
+.ed.done{border-color:#7F77DD;background:#EEEDFE;color:#3C3489;}
+.ed.cur{border-color:#534AB7;background:#534AB7;color:#fff;font-weight:600;}
+.el{width:10px;height:2px;background:#e0e0e0;border-radius:1px;}
+.el.done{background:#7F77DD;}
+/* log */
+.log-list{max-height:100px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.li{font-size:11px;padding:3px 8px;border-radius:5px;}
+.li.g{background:#EAF3DE;color:#3B6D11;}
+.li.b{background:#FCEBEB;color:#A32D2D;}
+.li.w{background:#FAEEDA;color:#633806;}
+/* sync btn */
+.sync-btn{padding:7px 14px;background:#E1F5EE;color:#085041;border:1px solid #5DCAA5;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.sync-btn:active{opacity:.7;}
+.sync-status{font-size:10px;color:#888;margin-top:4px;}
+/* admin */
+.admin-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.admin-tab{flex:1;min-width:70px;padding:7px 4px;font-size:11px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;color:#888;text-align:center;}
+.admin-tab.on{background:#534AB7;color:#fff;border-color:#534AB7;}
+.admin-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+.admin-row label{font-size:11px;color:#666;width:110px;flex-shrink:0;}
+.admin-row input{flex:1;font-size:12px;padding:5px 8px;border:1px solid #e0e0e0;border-radius:6px;outline:none;}
+.admin-save{padding:8px 16px;background:#534AB7;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;margin-top:6px;}
+.shop-block{background:#f9f9f9;border-radius:10px;padding:10px;margin-bottom:8px;}
+.shop-block-name{font-size:12px;font-weight:600;color:#534AB7;margin-bottom:6px;}
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.rev-item{background:#f9f9f9;border-radius:10px;padding:9px 8px;}
+.rev-name{font-size:11px;color:#666;margin-bottom:3px;font-weight:500;}
+.rev-kpi{font-size:10px;color:#aaa;margin-bottom:4px;}
+.rev-input{width:100%;font-size:14px;font-weight:600;padding:5px 6px;border:1px solid #e0e0e0;border-radius:6px;text-align:center;outline:none;background:#fff;}
+.rev-status{font-size:10px;margin-top:3px;text-align:center;font-weight:600;}
+.rev-status.ok{color:#0F6E56;}.rev-status.ng{color:#A32D2D;}
+
+/* 気持ちアイコン */
+.mood-section{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.mood-icons-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.mood-icon-btn{font-size:26px;background:none;border:2px solid transparent;border-radius:12px;padding:4px 6px;cursor:pointer;transition:transform .15s,border-color .15s;line-height:1;}
+.mood-icon-btn:active{transform:scale(.9);}
+.mood-icon-btn.selected{border-color:#534AB7;background:#EEEDFE;}
+.mood-comment-row{display:flex;gap:6px;margin-top:6px;}
+.mood-comment-input{flex:1;font-size:12px;padding:7px 10px;border:1px solid #e0e0e0;border-radius:8px;outline:none;}
+.mood-save-btn{padding:7px 12px;background:#534AB7;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;}
+/* 吹き出し表示 */
+.mood-bubble-area{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.mood-bubble-icon{font-size:30px;flex-shrink:0;line-height:1;}
+.mood-bubble{position:relative;background:#f5f5f7;border-radius:12px;padding:7px 11px;font-size:12px;color:#444;max-width:220px;line-height:1.5;}
+.mood-bubble::before{content:'';position:absolute;left:-7px;top:10px;border:5px solid transparent;border-right-color:#f5f5f7;}
+.mood-bubble-time{font-size:9px;color:#aaa;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="ttl" style="display:flex;align-items:center;justify-content:center;gap:8px;"><span>🏪 店長成長ゲーム</span><button id="bgm-btn" onclick="toggleBGM()" style="font-size:18px;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:8px;line-height:1;opacity:0.5;" title="BGM ON/OFF">🔇</button></div>
+<div class="nav">
+  <button class="nav-btn on" onclick="switchMode('game')">🎮 育成</button>
+  <button class="nav-btn" onclick="switchMode('admin')">⚙️ J管理画面</button>
+</div>
+<div id="mode-game">
+  <div class="tabs" id="tabs"></div>
+  <div id="neglect" class="neglect">⚠️ 出勤日なのに未更新！ -5pt 自動減点</div>
+  <div id="char-panel"></div>
+</div>
+<div id="mode-admin" style="display:none;">
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;text-align:center;margin-bottom:10px;">⚙️ J管理画面</div>
+    <div class="admin-tabs">
+      <button class="admin-tab on" onclick="switchAdminTab('shop')">店舗設定</button>
+      <button class="admin-tab" onclick="switchAdminTab('kpi')">収益KPI</button>
+      <button class="admin-tab" onclick="switchAdminTab('ichiba')">市場目標</button>
+      <button class="admin-tab" onclick="switchAdminTab('excel')">実績反映</button>
+    </div>
+    <div id="admin-shop"></div>
+    <div id="admin-kpi" style="display:none;"></div>
+    <div id="admin-ichiba" style="display:none;"></div>
+    <div id="admin-excel" style="display:none;"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ===== ピクセルキャラ =====
+// ===== ステージ共通カラーパレット =====
+const PALS={
+  s0:{"0":null,"1":"#F9B8CF","2":"#D06090","3":"#FDDDE9","4":"#fff","5":"#1A0A1A","6":"#E8709A","7":"#FFB0C0","8":"#F080A8","9":"#FFD0E0","A":"#4A4870","B":"#D8D8E0","C":"#A0A0B0","D":"#C04878","E":"#303060"},
+  s1:{"0":null,"1":"#90C8F8","2":"#2868C0","3":"#C8E8FF","4":"#fff","5":"#0A1030","6":"#4090E0","7":"#B8D8F8","8":"#50A0E0","9":"#D8F0FF","A":"#304070","B":"#D0D8F0","C":"#9090C0","D":"#1040A0","E":"#102050"},
+  s2:{"0":null,"1":"#80D898","2":"#207840","3":"#C0F0D0","4":"#fff","5":"#081808","6":"#30A858","7":"#A8E8B8","8":"#40B870","9":"#D0F8E0","A":"#304840","B":"#C8E8D0","C":"#809880","D":"#106030","E":"#083020"},
+  s3:{"0":null,"1":"#90C8F8","2":"#2868C0","3":"#C8E8FF","4":"#fff","5":"#0A1030","6":"#4090E0","7":"#B8D8F8","8":"#50A0E0","9":"#D8F0FF","A":"#304070","B":"#D0D8F0","C":"#9090C0","D":"#1040A0","E":"#102050"},
+  s4:{"0":null,"1":"#F8D060","2":"#A06808","3":"#FFF0B0","4":"#fff","5":"#1A0800","6":"#E09020","7":"#FFE898","8":"#E0A830","9":"#FFFAC0","A":"#604808","B":"#F0E0A0","C":"#C0A840","D":"#805000","E":"#402800"},
+  neg:{"0":null,"1":"#D09898","2":"#803030","3":"#F8D8D8","4":"#fff","5":"#300000","6":"#C06060","7":"#F0A0A0","8":"#A04040","9":"#FFE0E0","A":"#503030","B":"#E8C0C0","C":"#A07070","D":"#602020","E":"#401010"},
+};
+
+// ===== ベースグリッド（kura/kota/neg共通）=====
+const BASE_GRIDS={
+  s0:["00000001111000000000","00000011111100000000","00000111111110000000","00001111111111000000","00001151151111000000","00001111111111000000","00001116611111000000","00001111111111000000","00000111111110000000","00000011111100000000","00000001111000000000","00000000100000000000","00000000100000000000","00000000000000000000","00000000000000000000"],
+  s1:["00000011111100000000","00000111111110000000","00011111111111100000","00011111111111100000","00011151151111100000","00011111111111100000","00011116611111100000","00011111111111100000","00001111111111000000","00000111111110000000","00000011111100000000","00000010101000000000","00000010101000000000","00000010001000000000","00000000000000000000"],
+  s2:["00000211100011200000","00002111100111200000","00002222222222200000","00002222222222200000","00002225122522200000","00002225122522200000","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00200222222222200020","00200000000000000020","00000021100112000000","00000021100112000000","00000000000000000000"],
+  s3:["00000030000300000000","00000330000330000000","00000333333330000000","00003333333333000000","00003388338833000000","00003388338833000000","00003333333333000000","00003336633333000000","00003333333333000000","00000333333330000000","00300333333330030000","00300333333330030000","00000033333300000000","00000031100130000000","00000031100130000000"],
+  s4:["00000444404444000000","00004444444444400000","00044444444444440000","00044595100595440000","00044999100999440000","00044595100595440000","00044444444444440000","00044446644444440000","00044444444444440000","04404444444444404400","04404444444444404400","00004444444444400000","00004410000144400000","00004410000144400000","00004400000044400000"],
+  neg:["00000022222200000000","00002222222222000000","00022222222222200000","00022297297222200000","00022222222222200000","00022282828282200000","00022282828282200000","00022282828282200000","00002222222222000000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+};
+
+// ===== おかのっち: センター分け（真ん中に白ライン）=====
+const OKA_GRIDS={
+  s0:["00000001111000000000","00000014411100000000","00000144441110000000","00001144441111000000","00001151151111000000","00001111111111000000","00001116611111000000","00001111111111000000","00000111111110000000","00000011111100000000","00000001111000000000","00000000100000000000","00000000100000000000","00000000000000000000","00000000000000000000"],
+  s1:["00000011111100000000","00000141141110000000","00011144441111100000","00011144441111100000","00011151151111100000","00011111111111100000","00011116611111100000","00011111111111100000","00001111111111000000","00000111111110000000","00000011111100000000","00000010101000000000","00000010101000000000","00000010001000000000","00000000000000000000"],
+  s2:["00000211100011200000","00002141100141200000","00002222422222200000","00002222422222200000","00002225122522200000","00002225122522200000","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00200222222222200020","00200000000000000020","00000021100112000000","00000021100112000000","00000000000000000000"],
+  s3:["00000030000300000000","00000334000330000000","00000334333330000000","00003334333333000000","00003388338833000000","00003388338833000000","00003333333333000000","00003336633333000000","00003333333333000000","00000333333330000000","00300333333330030000","00300333333330030000","00000033333300000000","00000031100130000000","00000031100130000000"],
+  s4:["00000444404444000000","00004444444444400000","00044444444444440000","00044595100595440000","00044999100999440000","00044595100595440000","00044444444444440000","00044446644444440000","00044444444444440000","04404444444444404400","04404444444444404400","00004444444444400000","00004410000144400000","00004410000144400000","00004400000044400000"],
+  neg:["00000022222200000000","00002224222222000000","00022224222222200000","00022227297222200000","00022222222222200000","00022282828282200000","00022282828282200000","00022282828282200000","00002222222222000000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+};
+
+// ===== たけだっち: 女の子風（リボン＋丸い大きな髪）=====
+const TAKE_GRIDS={
+  s0:["00000062226000000000","00000622222260000000","00002222222222200000","00002222222222200000","00002251252222200000","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+  s1:["00000062226000000000","00000622222260000000","00002222222222200000","00002222222222200000","00002251252222200000","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+  s2:["00000262226200000000","00002622222262000000","00002222222222200000","00002222222222200000","00002225122522200000","00002225122522200000","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00200222222222200020","00200000000000000020","00000021100112000000","00000021100112000000","00000000000000000000"],
+  s3:["00000036336000000000","00000362223360000000","00003322222222300000","00003322222222300000","00003338233822300000","00003338233822300000","00003322222222300000","00003326622222300000","00003322222222300000","00000332222220000000","00300332222220030000","00300000000000030000","00000033333300000000","00000031100130000000","00000031100130000000"],
+  s4:["00000046446000000000","00000464444460000000","00004444444444400000","00044444444444440000","00044595100595440000","00044999100999440000","00044595100595440000","00044446644444440000","00044444444444440000","04404444444444404400","04404444444444404400","00004444444444400000","00004410000144400000","00004410000144400000","00004400000044400000"],
+  neg:["00000022222200000000","00002222222222000000","00022222222222200000","00022297297222200000","00022222222222200000","00022282828282200000","00022282828282200000","00022282828282200000","00002222222222000000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+};
+
+// ===== ふじいっち: マイク持ち（右下にマイク）=====
+const FUJI_GRIDS={
+  s0:["00000001111000000000","00000011111100000000","00000111111110000000","00001111111111000000","00001151151111000000","00001111111111000000","00001116611111000000","00001111111110000000","00000111111100000000","00000011111100000BBB","00000001111100000BCB","00000000110000000BCB","00000000110000000CCC","00000000000000000000","00000000000000000000"],
+  s1:["00000011111100000000","00000111111110000000","00011111111111100000","00011111111111100000","00011151151111100000","00011111111111100000","00011116611111100000","00011111111110000000","00001111111100000000","00000111111100000BBB","00000011111000000BCB","00000010001000000BCB","00000010001000000CCC","00000010001000000000","00000000000000000000"],
+  s2:["00000211100011200000","00002111100111200000","00002222222222200000","00002222222222200000","00002225122522200000","00002225122522200000","00002222222222200000","00002226622222200000","00002222222220000000","00002222222220000BBB","00200222222220000BCB","00200000000000000BCB","00000021100110000CCC","00000021100110000000","00000000000000000000"],
+  s3:["00000030000300000000","00000330000330000000","00000333333330000000","00003333333333000000","00003388338833000000","00003388338833000000","00003333333333000000","00003336633333000000","00003333333330000000","00000333333330000BBB","00300333333330000BCB","00300333333330000BCB","00000033333300000CCC","00000031100130000000","00000031100130000000"],
+  s4:["00000444404444000000","00004444444444400000","00044444444444440000","00044595100595440000","00044999100999440000","00044595100595440000","00044444444444440000","00044446644444440000","00044444444444440000","04404444444444404400","04404444444444404400","00004444444444400000","00004410000144400000","00004410000144400000","00004400000044400000"],
+  neg:["00000022222200000000","00002222222222000000","00022222222222200000","00022297297222200000","00022222222222200000","00022282828282200000","00022282828282200000","00022282828282200000","00002222222222000000","00000222222220000BBB","00000022222220000BCB","00000020202000000BCB","00000020002000000CCC","00000020002000000000","00000000000000000000"],
+};
+
+// ===== しおっち: メガネ（目の行にフレーム追加）=====
+const SHIO_GRIDS={
+  s0:["00000001111000000000","00000011111100000000","00000111111110000000","00001111111111000000","00001EAE5AE111000000".slice(0,20),"00001A111A1111000000","00001116611111000000","00001111111111000000","00000111111110000000","00000011111100000000","00000001111000000000","00000000100000000000","00000000100000000000","00000000000000000000","00000000000000000000"],
+  s1:["00000011111100000000","00000111111110000000","00011111111111100000","00011111111111100000","00011EA15AE111000000","00011A111A1111100000","00011116611111100000","00011111111111100000","00001111111111000000","00000111111110000000","00000011111100000000","00000010101000000000","00000010101000000000","00000010001000000000","00000000000000000000"],
+  s2:["00000211100011200000","00002111100111200000","00002222222222200000","00002222222222200000","00002EAE1EAE22200000","00002A221A2222222000".slice(0,19)+"00","00002222222222200000","00002226622222200000","00002222222222200000","00002222222222200000","00200222222222200020","00200000000000000020","00000021100112000000","00000021100112000000","00000000000000000000"],
+  s3:["00000030000300000000","00000330000330000000","00000333333330000000","00003333333333000000","00003EAE3EAE33000000","00003A333A3333300000".slice(0,20),"00003333333333000000","00003336633333000000","00003333333333000000","00000333333330000000","00300333333330030000","00300333333330030000","00000033333300000000","00000031100130000000","00000031100130000000"],
+  s4:["00000444404444000000","00004444444444400000","00044444444444440000","00044EAE10EAE4400000","00044A99100A99440000","00044EAE10EAE4400000","00044444444444440000","00044446644444440000","00044444444444440000","04404444444444404400","04404444444444404400","00004444444444400000","00004410000144400000","00004410000144400000","00004400000044400000"],
+  neg:["00000022222200000000","00002222222222000000","00022222222222200000","00022EAE7EAE22220000".slice(0,20),"00022222222222200000","00022282828282200000","00022282828282200000","00022282828282200000","00002222222222000000","00000222222220000000","00000022222200000000","00000020202000000000","00000020202000000000","00000020002000000000","00000000000000000000"],
+};
+
+// ===== グリッド取得（キャラ別）=====
+function getGrid(charId,sk){
+  if(charId==="oka") return OKA_GRIDS[sk]||BASE_GRIDS[sk];
+  if(charId==="take") return TAKE_GRIDS[sk]||BASE_GRIDS[sk];
+  if(charId==="fuji") return FUJI_GRIDS[sk]||BASE_GRIDS[sk];
+  if(charId==="shio") return SHIO_GRIDS[sk]||BASE_GRIDS[sk];
+  return BASE_GRIDS[sk];
+}
+
+function drawPixelChar(sk,charId){
+  const grid=getGrid(charId||"kura",sk);
+  const pal=PALS[sk],ps=5;
+  const cols=grid[0].length,rows=grid.length;
+  const cv=document.createElement("canvas");
+  cv.width=cols*ps;cv.height=rows*ps;
+  cv.style.width=cols*ps+"px";cv.style.height=rows*ps+"px";
+  cv.style.imageRendering="pixelated";
+  const ctx=cv.getContext("2d");
+  grid.forEach((row,ry)=>{for(let cx=0;cx<row.length;cx++){const c=pal[row[cx]];if(!c)continue;ctx.fillStyle=c;ctx.fillRect(cx*ps,ry*ps,ps,ps);}});
+  return cv;
+}
+function stageKey(pts){if(pts<=-30)return"neg";if(pts>=150)return"s4";if(pts>=120)return"s3";if(pts>=80)return"s2";if(pts>=30)return"s1";return"s0";}
+
+// ===== バッジ定義 =====
+const BADGES=[
+  {id:"mnp",    label:"MNP",    colorFull:"#E8453C", colorEmpty:"#F5C5C2"},
+  {id:"ys",     label:"YS",     colorFull:"#2868C0", colorEmpty:"#A0B8E0"},
+  {id:"sb_kihenn", label:"SB機変", colorFull:"#E8A020", colorEmpty:"#F5DCA0"},
+  {id:"ym_kihen",  label:"YM機変", colorFull:"#9A3DBF", colorEmpty:"#D4A8E8"},
+  {id:"kotei",  label:"固定",   colorFull:"#207840", colorEmpty:"#A0D0B0"},
+  {id:"hyoka",  label:"店舗評価",colorFull:"#C06000", colorEmpty:"#E8C080"},
+];
+
+function getBadgeLevel(target,actual){
+  if(!target||target===0)return 0;
+  const rate=actual/target;
+  if(rate>=1.2)return 2;
+  if(rate>=1.0)return 1;
+  return 0;
+}
+
+// 市場比較バッジレベル: vs市場進捗GAPで判定
+// marketTarget/marketActual = 中四国CNCの目標・累計
+// myTarget/myActual = 自店の目標・累計
+function getBadgeLevelVsMarket(myTarget,myActual,mktTarget,mktActual){
+  if(!myTarget||myTarget===0)return 0;
+  const myRate=myActual/myTarget;
+  const mktRate=(mktTarget>0)?mktActual/mktTarget:0;
+  const gap=myRate-mktRate;
+  if(gap>=0.05)return 2;  // 市場より5%pt以上上回る → ★★
+  if(gap>=0)   return 1;  // 市場を上回る → ★
+  return 0;               // 市場以下 → ☆
+}
+
+// 店舗評価のランク取得
+function getHyokaRank(val){
+  if(!val)return null;
+  const v=String(val).trim().toUpperCase();
+  if(v==="S")return"S";
+  if(v==="A")return"A";
+  return"B";
+}
+
+function renderBadgeStar(badge,level){
+  if(badge.id==="hyoka"){
+    const rank=shopSettings[cur]?.hyokaRank||null;
+    const rankColor=rank==="S"?"#C06000":rank==="A"?"#2868C0":"#888";
+    const rankBg=rank==="S"?"#FFF0C0":rank==="A"?"#D8E8FF":"#f0f0f0";
+    return`<div class="badge-item">
+      <div class="badge-star" style="font-size:20px;font-weight:800;color:${rankColor};background:${rankBg};border-radius:8px;width:36px;height:28px;display:flex;align-items:center;justify-content:center;">${rank||"－"}</div>
+      <div class="badge-label">${badge.label}</div>
+    </div>`;
+  }
+  // ★は塗りつぶし（市場超え）、☆は空（市場以下）
+  // level=0:☆☆, level=1:★☆(市場超え), level=2:★★(市場+5%pt超え)
+  const star1=level>=1
+    ?`<span style="color:${badge.colorFull};text-shadow:0 0 6px ${badge.colorFull}88;font-size:22px;line-height:1;">★</span>`
+    :`<span style="color:${badge.colorEmpty};font-size:22px;line-height:1;">☆</span>`;
+  const star2=level>=2
+    ?`<span style="color:${badge.colorFull};text-shadow:0 0 6px ${badge.colorFull}88;font-size:18px;line-height:1;">★</span>`
+    :`<span style="color:${badge.colorEmpty};font-size:18px;line-height:1;">☆</span>`;
+  const bg=level>=1?`background:linear-gradient(135deg,${badge.colorFull}18,${badge.colorFull}08);border-radius:10px;padding:4px 6px;`:`padding:4px 6px;`;
+  return `<div class="badge-item">
+    <div class="badge-star" style="${bg}display:flex;align-items:flex-end;gap:1px;">${star1}${star2}</div>
+    <div class="badge-label">${badge.label}</div>
+  </div>`;
+}
+
+// ===== キャラ・フォームデータ =====
+const CHARS=[
+  {id:"kura",name:"くらもっち",role:"店長"},
+  {id:"kota",name:"こたにっち",role:"店長"},
+  {id:"oka", name:"おかのっち",role:"副店長"},
+  {id:"take",name:"たけだっち",role:"副店長"},
+  {id:"fuji",name:"ふじいっち",role:"副店長"},
+  {id:"shio",name:"しおっち",  role:"副店長"},
+];
+const FORMS=[
+  {name:"まめっち",  pts:-999,stageKey:"s0",mood:"やる気満々！何でも言ってください！"},
+  {name:"しいわっち",pts:30,  stageKey:"s1",mood:"だいぶ慣れてきました〜"},
+  {name:"くまっち",  pts:80,  stageKey:"s2",mood:"任せてください！何でもこなせます！"},
+  {name:"ちょまめっち",pts:120,stageKey:"s3",mood:"もう怖いものなしです！"},
+  {name:"でこっち",  pts:150, stageKey:"s4",mood:"レジェンドと呼ばれています👑"},
+];
+const NEG_FORM={name:"だめっち",stageKey:"neg",mood:"もうやる気出ません…ほっといてください😢"};
+
+// 自発的Todo（固定9項目）
+const SELF_TODOS=[
+  {id:"f1",label:"スケジュールクルーマッチング",pts:5},
+  {id:"f2",label:"修正すべき項目のスタッフ目線合わせ",pts:5},
+  {id:"f3",label:"面談",pts:8},
+  {id:"f4",label:"小野TL・江岡TSLに相談した",pts:6},
+  {id:"f5",label:"スタッフ褒めた",pts:5},
+  {id:"f6",label:"スタッフ指摘した",pts:5},
+  {id:"f7",label:"店舗評価の進捗確認した",pts:6},
+  {id:"f8",label:"重点項目計算した",pts:6},
+  {id:"f9",label:"施策を考えて立案した",pts:8},
+];
+
+// ルーティンTodo（スプレッドシート連動13項目）
+const ROUTINE_TODOS=[
+  {id:"r1", label:"清掃チェック",pts:3},
+  {id:"r2", label:"DM架電の進捗確認",pts:3},
+  {id:"r3", label:"マイショップメール送信（木曜日）",pts:3},
+  {id:"r4", label:"NPSのログインチェック",pts:3},
+  {id:"r5", label:"朝のスケジュールチェック",pts:3},
+  {id:"r6", label:"グループへ落とし込み",pts:3},
+  {id:"r7", label:"朝礼実施",pts:3},
+  {id:"r8", label:"進捗確認（主要項目、収益商材）",pts:3},
+  {id:"r9", label:"ロープレ実施",pts:3},
+  {id:"r10",label:"店舗MTG（週1）",pts:3},
+  {id:"r11",label:"清掃報告（週1）",pts:3},
+  {id:"r12",label:"中間棚卸",pts:3},
+  {id:"r13",label:"前日棚卸",pts:3},
+];
+
+// 市場商材（エクセルの列に対応）
+const ICHIBA=["MNP","YS","SB機変","YM機変","固定"];
+// 各商材のエクセル列インデックス（0始まり）: [目標列, 累計列]
+// 各種実績シート列インデックス（0始まり）: [目標列, 累計列]
+// MNP: 目標=col15(JS14), 累計=col28(JS27)
+// YS番号移行: 目標=col64(JS63), 累計=col68(JS67)
+// SBスマホ機変: 目標=col71(JS70), 累計=col75(JS74)
+// YMスマホ機変: 目標=col78(JS77), 累計=col82(JS81)
+// 固定ALL: 目標=col85(JS84), 累計=col88(JS87)
+const ICHIBA_COLS={
+  "MNP":    [14, 27],
+  "YS":     [63, 67],
+  "SB機変": [70, 74],
+  "YM機変": [77, 81],
+  "固定":   [84, 87],
+};
+const REVENUE=["カード","フルプラン","機変ペイトク","セレクション単価","Pixel販売"];
+
+// スプレッドシートID
+const ROUTINE_SHEET_ID="1RhApn9MtpcIPX5wgEcO64UwaXWomfjO-Gn0tbpFU9Po";
+const REVENUE_SHEET_ID="18CciUGAKebpT7ON1C4PfTOmTIG3cm_GgUdgMpbgCfUo";
+
+// 収益商材→スプレッド行名マッピング
+const REVENUE_ROW_MAP={
+  "カード":"PPC（ゴールド含む）",
+  "セレクション単価":"セレ管理タブ",
+  "Pixel販売":"[戦略機種] Pixel",
+};
+
+// ===== GAS連携 =====
+const GAS_URL=""; // ← デプロイ後のWebアプリURLをここに貼る
+
+async function postToGAS(type,data){
+  if(!GAS_URL)return;
+  try{
+    await fetch(GAS_URL,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({type,...data})
+    });
+  }catch(e){console.warn("GAS送信失敗:",e);}
+}
+
+// ===== 状態 =====
+let cur="kura",logs=[],mode="game",adminTab="shop";
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+const todayKey=()=>new Date().toDateString();
+const dateKey=(y,m,d)=>`${y}-${m}-${d}`;
+
+let shopSettings={},ichibaData={},kpi={},state={};
+
+CHARS.forEach(c=>{
+  shopSettings[c.id]={name:"",soshanTarget:0,sheetName:"",hyokaTarget:0,hyokaActual:0};
+  state[c.id]={
+    pts:0,loyalty:70,energy:70,mood:70,
+    lastActionDate:null,lastTodoResetDate:null,
+    shift:{},revenue:{},
+    selfTodos:{},routineTodos:{},
+    customTodos:[],
+    badges:{mnp:{target:0,actual:0},ys:{target:0,actual:0},sb_kihenn:{target:0,actual:0},ym_kihen:{target:0,actual:0},kotei:{target:0,actual:0},hyoka:{target:0,actual:0}},
+    moodIcon:"",moodComment:"",moodUpdatedAt:"",
+  };
+  REVENUE.forEach(r=>{state[c.id].revenue[r]={target:0,actual:0};});
+  SELF_TODOS.forEach(t=>{state[c.id].selfTodos[t.id]=false;});
+  ROUTINE_TODOS.forEach(t=>{state[c.id].routineTodos[t.id]=false;});
+  kpi[c.id]={};REVENUE.forEach(r=>{kpi[c.id][r]=0;});
+});
+ICHIBA.forEach(m=>{ichibaData[m]={national_target:0,national_actual:0,results:{}};CHARS.forEach(c=>{ichibaData[m].results[c.id]=0;});});
+
+function saveData(){
+  try{
+    localStorage.setItem('tsg3_state',JSON.stringify(state));
+    localStorage.setItem('tsg3_kpi',JSON.stringify(kpi));
+    localStorage.setItem('tsg3_shop',JSON.stringify(shopSettings));
+    localStorage.setItem('tsg3_ichiba',JSON.stringify(ichibaData));
+  }catch(e){}
+}
+function loadData(){
+  try{
+    const s=localStorage.getItem('tsg3_state');if(s) mergeState(state,JSON.parse(s));
+    const k=localStorage.getItem('tsg3_kpi');if(k)Object.assign(kpi,JSON.parse(k));
+    const sh=localStorage.getItem('tsg3_shop');if(sh)Object.assign(shopSettings,JSON.parse(sh));
+    const ic=localStorage.getItem('tsg3_ichiba');if(ic)Object.assign(ichibaData,JSON.parse(ic));
+  }catch(e){}
+}
+function mergeState(dst,src){
+  Object.keys(src).forEach(id=>{
+    if(dst[id]) Object.assign(dst[id],src[id]);
+  });
+}
+loadData();
+
+function checkTodoReset(id){
+  const s=state[id];
+  if(s.lastTodoResetDate!==todayKey()){
+    SELF_TODOS.forEach(t=>{s.selfTodos[t.id]=false;});
+    ROUTINE_TODOS.forEach(t=>{s.routineTodos[t.id]=false;});
+    s.lastTodoResetDate=todayKey();
+    saveData();
+  }
+}
+function getForm(id){
+  const s=state[id];
+  if(s.pts<=-30)return NEG_FORM;
+  let f=FORMS[0];for(let x of FORMS){if(s.pts>=x.pts)f=x;}return f;
+}
+function clamp(v){return Math.min(100,Math.max(0,v));}
+function isWorkToday(id){const n=new Date();return(state[id].shift||{})[dateKey(n.getFullYear(),n.getMonth(),n.getDate())]==="work";}
+function checkNeglect(id){return isWorkToday(id)&&state[id].lastActionDate!==todayKey();}
+
+// ===== スプレッドシート同期 =====
+async function syncFromSpreadsheet(charId){
+  const sn=shopSettings[charId]?.sheetName;
+  if(!sn){alert("J管理画面でシート名（店舗名）を設定してください");return;}
+  const statusEl=document.getElementById("sync-status-"+charId);
+  if(statusEl)statusEl.textContent="同期中...";
+
+  try{
+    // ルーティンTodo同期
+    const routineUrl=`https://docs.google.com/spreadsheets/d/${ROUTINE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sn)}`;
+    const routineRes=await fetch(routineUrl);
+    if(routineRes.ok){
+      const csv=await routineRes.text();
+      parseRoutineTodo(charId,csv);
+    }
+
+    // 収益実績同期（業務報告シート）
+    const revenueUrl=`https://docs.google.com/spreadsheets/d/${REVENUE_SHEET_ID}/gviz/tq?tqx=out:csv`;
+    const revenueRes=await fetch(revenueUrl);
+    if(revenueRes.ok){
+      const csv=await revenueRes.text();
+      parseRevenueData(charId,csv,sn);
+    }
+
+    saveData();
+    if(statusEl)statusEl.textContent="✅ 同期完了！ "+new Date().toLocaleTimeString();
+    renderChar();
+  }catch(e){
+    if(statusEl)statusEl.textContent="⚠️ 同期失敗（ネットワーク確認してください）";
+  }
+}
+
+function parseRoutineTodo(charId,csv){
+  const rows=csv.split("\n").map(r=>r.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
+  const s=state[charId];
+  let ptsAdded=0;
+  ROUTINE_TODOS.forEach(t=>{
+    const row=rows.find(r=>r[1]&&r[1].includes(t.label.slice(0,6)));
+    if(!row)return;
+    // 合計列（最後の列）をチェック
+    const total=parseInt(row[row.length-1]);
+    const wasDone=s.routineTodos[t.id];
+    const isDone=!isNaN(total)&&total>0;
+    if(isDone&&!wasDone){
+      s.routineTodos[t.id]=true;
+      s.pts+=t.pts;
+      s.lastActionDate=todayKey();
+      ptsAdded+=t.pts;
+      logs.push({text:`${CHARS.find(c=>c.id===charId).name}「${t.label}」ルーティン完了+${t.pts}pt`,type:"g"});
+    } else if(!isDone&&wasDone){
+      s.routineTodos[t.id]=false;
+    }
+  });
+}
+
+function parseRevenueData(charId,csv,sheetName){
+  const rows=csv.split("\n").map(r=>r.split(",").map(c=>c.replace(/^"|"$/g,"").trim()));
+  const headerRow=rows[2]||[];
+  const storeCol=headerRow.findIndex(h=>h===sheetName||h.includes(sheetName.replace(/^[SYP]/,"")));
+  if(storeCol<0)return;
+
+  const s=state[charId];
+  Object.entries(REVENUE_ROW_MAP).forEach(([revName,rowKeyword])=>{
+    const row=rows.find(r=>r[0]&&r[0].includes(rowKeyword.slice(0,6)));
+    if(!row)return;
+    const bVal=parseFloat((row[1]||"").replace(/,/g,""));
+    const dVal=parseFloat((row[storeCol]||"").replace(/,/g,""));
+    if(!isNaN(bVal))s.revenue[revName].target=bVal;
+    if(!isNaN(dVal))s.revenue[revName].actual=dVal;
+  });
+}
+
+// ===== アクション =====
+function toggleShift(y,m,d){
+  if(!state[cur].shift)state[cur].shift={};
+  const s=state[cur].shift,k=dateKey(y,m,d);
+  s[k]=!s[k]?"work":s[k]==="work"?"off":undefined;
+  if(s[k]===undefined)delete s[k];
+  saveData();renderChar();
+}
+function prevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderChar();}
+function nextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderChar();}
+
+function toggleSelfTodo(id){
+  const s=state[cur],was=s.selfTodos[id],t=SELF_TODOS.find(x=>x.id===id);
+  s.selfTodos[id]=!was;s.lastActionDate=todayKey();
+  if(!was){s.pts+=t.pts;s.mood=clamp(s.mood+3);logs.push({text:`${CHARS.find(c=>c.id===cur).name}「${t.label}」✅+${t.pts}pt`,type:"g"});}
+  else{s.pts-=t.pts;logs.push({text:`${CHARS.find(c=>c.id===cur).name}「${t.label}」取消-${t.pts}pt`,type:"b"});}
+  saveData();renderChar();
+}
+function toggleRoutineTodo(id){
+  const s=state[cur],was=s.routineTodos[id],t=ROUTINE_TODOS.find(x=>x.id===id);
+  s.routineTodos[id]=!was;s.lastActionDate=todayKey();
+  if(!was){s.pts+=t.pts;logs.push({text:`${CHARS.find(c=>c.id===cur).name}「${t.label}」ルーティン+${t.pts}pt`,type:"g"});}
+  else{s.pts-=t.pts;logs.push({text:`${CHARS.find(c=>c.id===cur).name}「${t.label}」取消-${t.pts}pt`,type:"b"});}
+  saveData();renderChar();
+}
+function addCustomTodo(){
+  const inp=document.getElementById("cti"),val=inp.value.trim();if(!val)return;
+  if((state[cur].customTodos||[]).length>=8){alert("8個までです");return;}
+  if(!state[cur].customTodos)state[cur].customTodos=[];
+  state[cur].customTodos.push({label:val,done:false});inp.value="";saveData();renderChar();
+}
+function toggleCustomTodo(i){state[cur].customTodos[i].done=!state[cur].customTodos[i].done;saveData();renderChar();}
+function removeCustomTodo(i){state[cur].customTodos.splice(i,1);saveData();renderChar();}
+
+function updateRevenue(r,field,val){
+  if(!state[cur].revenue[r])state[cur].revenue[r]={target:0,actual:0};
+  state[cur].revenue[r][field]=parseFloat(val)||0;
+  state[cur].lastActionDate=todayKey();
+  saveData();renderChar();
+}
+function updateBadge(badgeId,field,val){
+  if(!state[cur].badges)state[cur].badges={};
+  if(!state[cur].badges[badgeId])state[cur].badges[badgeId]={target:0,actual:0};
+  state[cur].badges[badgeId][field]=parseFloat(val)||0;
+  saveData();renderChar();
+}
+
+// ===== 管理画面 =====
+function switchMode(m){
+  mode=m;
+  document.getElementById("mode-game").style.display=m==="game"?"block":"none";
+  document.getElementById("mode-admin").style.display=m==="admin"?"block":"none";
+  document.querySelectorAll(".nav-btn").forEach((b,i)=>{b.classList.toggle("on",(m==="game"&&i===0)||(m==="admin"&&i===1));});
+  if(m==="admin")renderAdmin();
+}
+function switchAdminTab(t){
+  adminTab=t;
+  ["shop","kpi","ichiba","excel"].forEach(x=>{document.getElementById("admin-"+x).style.display=x===t?"block":"none";});
+  document.querySelectorAll(".admin-tab").forEach((b,i)=>{b.classList.toggle("on",["shop","kpi","ichiba","excel"][i]===t);});
+  renderAdmin();
+}
+function renderAdmin(){
+  if(adminTab==="shop"){
+    let h=`<div style="font-size:11px;color:#888;margin-bottom:10px;">店舗名・シート名・総販目標を設定してください</div>`;
+    CHARS.forEach(c=>{
+      h+=`<div class="shop-block"><div class="shop-block-name">${c.name}（${c.role}）</div>
+        <div class="admin-row"><label>店舗表示名</label><input type="text" value="${shopSettings[c.id].name||""}" placeholder="例：S相田" oninput="shopSettings['${c.id}'].name=this.value;saveData();renderTabs();"></div>
+        <div class="admin-row"><label>ルーティンシート名</label><input type="text" value="${shopSettings[c.id].sheetName||""}" placeholder="例：高松一宮" oninput="shopSettings['${c.id}'].sheetName=this.value;saveData()"></div>
+        <div class="admin-row"><label>総販目標</label><input type="number" value="${shopSettings[c.id].soshanTarget||0}" onchange="shopSettings['${c.id}'].soshanTarget=+this.value;saveData()"><span style="font-size:10px;color:#aaa">台</span></div>
+        <div class="admin-row"><label>店舗評価ランク</label>
+          <select style="flex:1;font-size:12px;padding:5px 8px;border:1px solid #e0e0e0;border-radius:6px;" onchange="shopSettings['${c.id}'].hyokaRank=this.value;saveData();if(cur==='${c.id}')renderChar()">
+            <option value="" ${!shopSettings[c.id].hyokaRank?"selected":""}>未設定</option>
+            <option value="S" ${shopSettings[c.id].hyokaRank==="S"?"selected":""}>S</option>
+            <option value="A" ${shopSettings[c.id].hyokaRank==="A"?"selected":""}>A</option>
+            <option value="B" ${shopSettings[c.id].hyokaRank==="B"?"selected":""}>B</option>
+          </select>
+        </div>
+      </div>`;
+    });
+    document.getElementById("admin-shop").innerHTML=h+`<button class="admin-save" onclick="saveData();alert('保存しました！')">💾 保存</button>`;
+  }
+  if(adminTab==="kpi"){
+    let h="";
+    CHARS.forEach(c=>{
+      const sn=shopSettings[c.id].name||c.name;
+      h+=`<div class="shop-block"><div class="shop-block-name">${c.name} <span style="font-weight:400;color:#888;font-size:11px;">${sn}</span></div>`;
+      REVENUE.forEach(r=>{h+=`<div class="admin-row"><label>${r}</label><input type="number" value="${kpi[c.id][r]||0}" onchange="kpi['${c.id}']['${r}']=+this.value;saveData()"><span style="font-size:10px;color:#aaa">台/件</span></div>`;});
+      h+="</div>";
+    });
+    document.getElementById("admin-kpi").innerHTML=h+`<button class="admin-save" onclick="saveData();alert('保存しました！')">💾 保存</button>`;
+  }
+  if(adminTab==="ichiba"){
+    let h=`
+      <div style="font-size:12px;color:#666;margin-bottom:10px;line-height:1.7;">
+        📊 市場商材の目標・実績は<strong style="color:#534AB7">エクセルアップロード</strong>で自動反映されます。<br>
+        <span style="font-size:10px;color:#aaa">「各種実績」「ペイトク」シートを含むExcelをアップしてください。</span>
+      </div>`;
+    // 現在の市場平均表示
+    h+=`<div style="background:#EEEDFE;border-radius:10px;padding:10px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:600;color:#3C3489;margin-bottom:6px;">📈 現在の市場平均（中四国CNC）</div>`;
+    ICHIBA.forEach(m=>{
+      const d=ichibaData[m]||{national_target:0,national_actual:0};
+      const rate=d.national_target>0?Math.round(d.national_actual/d.national_target*1000)/10:0;
+      h+=`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;"><span style="color:#555;">${m}</span><span style="font-weight:600;color:#3C3489;">${d.national_actual}/${d.national_target}台 (${rate}%)</span></div>`;
+    });
+    const mktPay=ichibaData["ペイトク_市場加入率"]||0;
+    h+=`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;"><span style="color:#555;">ペイトク加入率</span><span style="font-weight:600;color:#3C3489;">${mktPay?mktPay+"%":"未取得"}</span></div>`;
+    h+=`</div>`;
+    document.getElementById("admin-ichiba").innerHTML=h+`<div style="font-size:11px;color:#aaa;text-align:center;">エクセルアップロードは「実績反映」タブから</div>`;
+  }
+  if(adminTab==="excel"){
+    let h=`
+    <div style="font-size:12px;font-weight:600;color:#534AB7;margin-bottom:8px;">📊 市場実績エクセル反映</div>
+    <div style="font-size:11px;color:#666;margin-bottom:8px;line-height:1.6;">
+      「中四国CNC各種実績」Excelをアップロードすると<br>
+      MNP・YS・S機変・固定の目標＆累計実績が自動反映されます。<br>
+      <span style="font-size:10px;color:#aaa">※事前に店舗設定タブで各キャラの店舗名を入力してください（例：相田、高松一宮）</span>
+    </div>
+    <label style="display:block;padding:14px;background:#f0f0f0;border:1.5px dashed #ccc;border-radius:8px;font-size:12px;color:#666;cursor:pointer;text-align:center;margin-bottom:8px;" for="excel-upload">
+      📂 Excelファイルをアップロード（クリック）<br>
+      <span style="font-size:10px;color:#aaa">対応形式：.xlsx</span>
+    </label>
+    <input type="file" id="excel-upload" accept=".xlsx" style="display:none;" onchange="handleIchibaExcel(this)">
+    <div id="excel-status" style="font-size:11px;color:#666;margin-bottom:12px;"></div>
+
+    <div style="font-size:12px;font-weight:600;color:#534AB7;margin-bottom:8px;">🔄 スプレッドシート同期（ルーティンTodo・収益商材）</div>
+    <div style="font-size:11px;color:#666;margin-bottom:8px;line-height:1.6;">
+      <strong style="color:#534AB7">事前準備：</strong>店舗設定タブで「ルーティンシート名」を入力してください。<br>
+      <span style="font-size:10px;color:#aaa">例：くらもっち → 高松一宮</span>
+    </div>`;
+    CHARS.forEach(c=>{
+      const sn=shopSettings[c.id].sheetName||"未設定";
+      h+=`<div class="shop-block">
+        <div class="shop-block-name">${c.name}　<span style="font-weight:400;font-size:11px;color:#888;">シート：${sn}</span></div>
+        <button onclick="syncFromSpreadsheet('${c.id}')" class="sync-btn">🔄 スプレッドから反映</button>
+        <div id="sync-status-${c.id}" class="sync-status"></div>
+      </div>`;
+    });
+    document.getElementById("admin-excel").innerHTML=h;
+  }
+}
+
+// ===== 気持ちアイコン =====
+const MOOD_ICONS=[
+  {icon:"😊",label:"いい感じ"},
+  {icon:"😄",label:"最高！"},
+  {icon:"😐",label:"普通"},
+  {icon:"😤",label:"やる気"},
+  {icon:"😫",label:"つかれた"},
+  {icon:"😢",label:"しんどい"},
+  {icon:"🔥",label:"燃えてる"},
+  {icon:"😴",label:"眠い"},
+];
+let selectedMoodIcon="";
+
+function selectMoodIcon(icon){
+  selectedMoodIcon=icon;
+  document.querySelectorAll(".mood-icon-btn").forEach(b=>{
+    b.classList.toggle("selected",b.dataset.icon===icon);
+  });
+}
+
+function saveMoodEntry(){
+  const commentEl=document.getElementById("mood-comment-inp");
+  const comment=(commentEl?commentEl.value.trim():"");
+  if(!selectedMoodIcon){alert("気分アイコンを選んでください！");return;}
+  const s=state[cur];
+  s.moodIcon=selectedMoodIcon;
+  s.moodComment=comment;
+  const now=new Date();
+  s.moodUpdatedAt=`${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
+  selectedMoodIcon="";
+  saveData();renderChar();
+}
+
+function buildMoodSection(){
+  const s=state[cur];
+  const iconsH=MOOD_ICONS.map(m=>`<button class="mood-icon-btn" data-icon="${m.icon}" onclick="selectMoodIcon('${m.icon}')" title="${m.label}">${m.icon}</button>`).join("");
+  const bubbleH=s.moodIcon?`
+    <div class="mood-bubble-area">
+      <div class="mood-bubble-icon">${s.moodIcon}</div>
+      <div>
+        <div class="mood-bubble">${s.moodComment||"今日の気分を記録したよ！"}</div>
+        <div class="mood-bubble-time">${s.moodUpdatedAt?s.moodUpdatedAt+"に記録":""}</div>
+      </div>
+    </div>`:"";
+  return`<div class="mood-section">
+    <div class="sec-title">😊 今日の気分</div>
+    ${bubbleH}
+    <div class="mood-icons-row">${iconsH}</div>
+    <div class="mood-comment-row">
+      <input class="mood-comment-input" id="mood-comment-inp" placeholder="ひとことコメント（任意）" maxlength="40">
+      <button class="mood-save-btn" onclick="saveMoodEntry()">記録</button>
+    </div>
+  </div>`;
+}
+
+function updateBadgeAdmin(charId,badgeId,field,val){
+  if(!state[charId].badges)state[charId].badges={};
+  if(!state[charId].badges[badgeId])state[charId].badges[badgeId]={target:0,actual:0};
+  state[charId].badges[badgeId][field]=parseFloat(val)||0;
+  saveData();
+}
+
+// ===== 描画 =====
+function switchChar(id){cur=id;renderTabs();renderChar();}
+function renderTabs(){
+  const t=CHARS.filter(c=>c.role==="店長"),f=CHARS.filter(c=>c.role==="副店長");
+  document.getElementById("tabs").innerHTML=
+    `<div class="grp">店長</div>`+t.map(c=>{const sn=shopSettings[c.id].name;return`<button class="tb${c.id===cur?" on":""}" onclick="switchChar('${c.id}')">${c.name}${sn?`<br><span style="font-size:9px;opacity:.8">${sn}</span>`:""}</button>`;}).join("")+
+    `<div class="grp">副店長</div>`+f.map(c=>{const sn=shopSettings[c.id].name;return`<button class="tb${c.id===cur?" on":""}" onclick="switchChar('${c.id}')">${c.name}${sn?`<br><span style="font-size:9px;opacity:.8">${sn}</span>`:""}</button>`;}).join("");
+}
+
+function buildCalendar(){
+  const y=calYear,m=calMonth,today=new Date();
+  const firstDow=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const mn=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  let h=`<div class="cal-header"><button class="cal-nav" onclick="prevMonth()">◀</button><div class="cal-month">${y}年 ${mn[m]}</div><button class="cal-nav" onclick="nextMonth()">▶</button></div><div class="cal-grid">`;
+  ["日","月","火","水","木","金","土"].forEach((d,i)=>{h+=`<div class="cal-dow${i===0?" sun":i===6?" sat":""}">${d}</div>`;});
+  for(let i=0;i<firstDow;i++)h+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const dow=(firstDow+d-1)%7,isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const k=dateKey(y,m,d),v=(state[cur].shift||{})[k];
+    const cls=["cal-day",v==="work"?"work":v==="off"?"off":"",isToday?"today":"",dow===0?"sun-txt":dow===6?"sat-txt":""].filter(Boolean).join(" ");
+    h+=`<div class="${cls}" onclick="toggleShift(${y},${m},${d})"><div class="cal-day-num">${d}</div>${v?`<div class="cal-day-lbl">${v==="work"?"出勤":"公休"}</div>`:""}</div>`;
+  }
+  h+=`</div><div class="cal-legend"><span><i style="background:#E1F5EE;border:1px solid #5DCAA5;"></i>出勤</span><span><i style="background:#FCEBEB;border:1px solid #F09595;"></i>公休</span><span style="color:#aaa">タップで切替</span></div>`;
+  return h;
+}
+
+function buildGAPTable(){
+  const sn=shopSettings[cur].name||"未設定";
+  let h=`<div style="font-size:10px;color:#888;margin-bottom:8px;">店舗：<strong style="color:#534AB7">${sn}</strong>　月間目標 vs 実績累計</div>
+  <table class="gap-table">
+    <tr><th>商材</th><th>月間目標</th><th>実績累計</th><th>GAP</th><th>進捗</th></tr>`;
+  REVENUE.forEach(r=>{
+    const rv=state[cur].revenue[r]||{target:0,actual:0};
+    const target=rv.target||kpi[cur][r]||0;
+    const actual=rv.actual||0;
+    const gap=actual-target;
+    const gc=gap>0?"gap-pos":gap<0?"gap-neg":"";
+    const gs=gap>0?"+"+gap:gap===0?"±0":""+gap;
+    const pct=target>0?Math.min(100,Math.round(actual/target*100)):0;
+    const barColor=pct>=100?"#0F6E56":pct>=80?"#E8A020":"#A32D2D";
+    const syncMark=["カード","セレクション単価","Pixel販売"].includes(r)?" 🔄":"";
+    h+=`<tr>
+      <td>${r}${syncMark}</td>
+      <td>${target||"未設定"}</td>
+      <td>${actual}</td>
+      <td class="${gc}">${target||actual?gs:"－"}</td>
+      <td style="min-width:48px;">
+        ${target>0?`<div style="background:#efefef;border-radius:3px;height:6px;overflow:hidden;"><div style="width:${pct}%;background:${barColor};height:100%;border-radius:3px;"></div></div><div style="font-size:9px;color:${barColor};text-align:center;margin-top:1px;">${pct}%</div>`:"-"}
+      </td>
+    </tr>`;
+  });
+  h+=`</table><div style="font-size:9px;color:#aaa;margin-top:5px;">🔄 = スプレッドシートから自動反映</div>`;
+  return h;
+}
+
+function buildBadgeStrip(){
+  const s=state[cur];
+  const badges=s.badges||{};
+  // ICHIBA名 → badgeId マッピング
+  const nameToId={MNP:"mnp",YS:"ys","SB機変":"sb_kihenn","YM機変":"ym_kihen","固定":"kotei"};
+  return BADGES.map(b=>{
+    if(b.id==="hyoka") return renderBadgeStar(b,0);
+    const bd=badges[b.id]||{target:0,actual:0};
+    // 対応する市場データを取得
+    const ichibaName=Object.keys(nameToId).find(k=>nameToId[k]===b.id)||"";
+    const mkt=ichibaData[ichibaName]||{national_target:0,national_actual:0};
+    const level=getBadgeLevelVsMarket(bd.target,bd.actual,mkt.national_target,mkt.national_actual);
+    return renderBadgeStar(b,level);
+  }).join("");
+}
+
+function renderChar(){
+  checkTodoReset(cur);
+  const c=CHARS.find(x=>x.id===cur),s=state[cur],form=getForm(cur);
+  document.getElementById("neglect").style.display=checkNeglect(cur)?"block":"none";
+  const sk=stageKey(s.pts);
+  const ptsCol=s.pts<0?"#A32D2D":s.pts>=150?"#BA7517":s.pts>=80?"#0F6E56":"#534AB7";
+  const sn=shopSettings[cur].name;
+
+  let evo="";
+  FORMS.forEach((f,i)=>{
+    if(i>0)evo+=`<div class="el${s.pts>=f.pts&&s.pts>-30?" done":""}"></div>`;
+    const isCur=form.name===f.name;
+    evo+=`<div class="ed${isCur?" cur":s.pts>=f.pts&&s.pts>-30?" done":""}">${f.name.slice(0,2)}</div>`;
+  });
+
+  // 自発的Todo
+  const selfDone=SELF_TODOS.filter(t=>s.selfTodos[t.id]).length;
+  const selfTodoH=SELF_TODOS.map(t=>`<div class="todo-item"><div class="todo-cb${s.selfTodos[t.id]?" done":""}" onclick="toggleSelfTodo('${t.id}')">${s.selfTodos[t.id]?"✓":""}</div><div class="todo-txt${s.selfTodos[t.id]?" done":""}">${t.label}</div><div class="todo-pts">+${t.pts}pt</div></div>`).join("");
+
+  // ルーティンTodo
+  const routineDone=ROUTINE_TODOS.filter(t=>s.routineTodos[t.id]).length;
+  const routineTodoH=ROUTINE_TODOS.map(t=>`<div class="todo-item"><div class="todo-cb${s.routineTodos[t.id]?" done":""}" onclick="toggleRoutineTodo('${t.id}')">${s.routineTodos[t.id]?"✓":""}</div><div class="todo-txt${s.routineTodos[t.id]?" done":""}">${t.label}</div><div class="todo-pts">+${t.pts}pt</div></div>`).join("");
+
+  const customH=(s.customTodos||[]).map((t,i)=>`<div class="todo-item"><div class="todo-cb${t.done?" done":""}" onclick="toggleCustomTodo(${i})">${t.done?"✓":""}</div><div class="todo-txt${t.done?" done":""}">${t.label}</div><button onclick="removeCustomTodo(${i})" style="font-size:10px;padding:2px 6px;border-radius:5px;border:none;background:#FCEBEB;color:#A32D2D;cursor:pointer;flex-shrink:0;">削除</button></div>`).join("");
+
+  // 市場バッジ（ichiba）
+  const ichiba=s.ichiba||{};
+  const ichibaH=ICHIBA.map(m=>{
+    const ic=ichiba[m]||{w:0,l:0};
+    const natT=ichibaData[m]?.national_target||0;
+    const natA=ichibaData[m]?.national_actual||0;
+    const myActual=ichibaData[m]?.results?.[cur]||0;
+    const myTarget=(state[cur].badges?.[{MNP:"mnp",YS:"ys","SB機変":"sb_kihenn","YM機変":"ym_kihen","固定":"kotei"}[m]]||{}).target||0;
+    // 市場平均進捗率
+    const natRate=natT>0?natA/natT:0;
+    // 自分の進捗率
+    const myRate=myTarget>0?myActual/myTarget:0;
+    const gapRate=myRate-natRate;
+    const gc=gapRate>0?"gap-pos":gapRate<0?"gap-neg":"";
+    const gs=(gapRate>=0?"+":"")+Math.round(gapRate*1000)/10+"%";
+    const pct=Math.min(100,Math.round(myRate*100));
+    const barColor=pct>=100?"#0F6E56":pct>=80?"#E8A020":"#A32D2D";
+    return`<div style="background:#f9f9f9;border-radius:10px;padding:8px 6px;text-align:center;">
+      <div style="font-size:10px;color:#888;margin-bottom:2px;">${m}</div>
+      <div style="font-size:9px;color:#aaa;">市場 ${natA}/${natT}</div>
+      <div style="font-size:11px;font-weight:600;margin:2px 0;">${myActual}/${myTarget||"未"}</div>
+      ${myTarget>0?`<div style="background:#efefef;border-radius:3px;height:5px;overflow:hidden;margin-bottom:2px;"><div style="width:${pct}%;background:${barColor};height:100%;border-radius:3px;"></div></div>`:""}
+      <div style="font-size:11px;font-weight:700;" class="${gc}">${myTarget||myActual?gs:"－"}</div>
+      <div style="font-size:8px;color:#aaa;">vs市場進捗</div>
+    </div>`;
+  }).join("");
+
+  const sheetName=shopSettings[cur].sheetName||"";
+
+  document.getElementById("char-panel").innerHTML=`
+    ${buildMoodSection()}
+    <div class="card">
+      <div class="char-stage">
+        <div id="pxl" style="display:flex;align-items:flex-end;justify-content:center;min-height:80px;"></div>
+        <div class="char-name-row">
+          <span class="char-name">${c.name}</span>
+          <span class="role-b ${c.role==="店長"?"role-t":"role-f"}">${c.role}</span>
+        </div>
+        ${sn?`<div class="shop-lbl">🏪 ${sn}</div>`:""}
+        <div class="form-name">現在の姿：<strong>${form.name}</strong></div>
+        <div class="pts-big" style="color:${ptsCol}">${s.pts>=0?"+":""}${s.pts}pt</div>
+        <div class="speech">${form.mood}</div>
+        <div class="badge-strip">${buildBadgeStrip()}</div>
+      </div>
+    </div>
+
+    <div class="evo-track">${evo}</div>
+
+    <div class="bars">
+      <div class="bar-row"><div class="bar-lbl">忠誠度</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(s.loyalty)}%;background:#AFA9EC"></div></div><div class="bar-val">${Math.round(s.loyalty)}</div></div>
+      <div class="bar-row"><div class="bar-lbl">やる気</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(s.energy)}%;background:#5DCAA5"></div></div><div class="bar-val">${Math.round(s.energy)}</div></div>
+      <div class="bar-row"><div class="bar-lbl">機嫌</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(s.mood)}%;background:#F0997B"></div></div><div class="bar-val">${Math.round(s.mood)}</div></div>
+    </div>
+
+    <div class="card"><div class="sec-title">📅 シフト設定（タップで出勤→公休→未設定）</div>${buildCalendar()}</div>
+
+    <div class="card">
+      <div class="sec-title">🏆 市場商材　vs市場進捗GAP <span style="font-size:9px;color:#aaa;font-weight:400;">エクセルアップで自動更新</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">${ichibaH}</div>
+      ${(()=>{
+        const rate=state[cur].paytoku?.rate||0;
+        const tgt=shopSettings[cur].paytokuTarget||0;
+        const mktRate=ichibaData["ペイトク_市場加入率"]||0;
+        const gap=rate-mktRate;
+        const gc=gap>0?"gap-pos":gap<0?"gap-neg":"";
+        const gs=(gap>=0?"+":"")+Math.round(gap*10)/10+"%";
+        return`<div style="margin-top:8px;background:#f9f9f9;border-radius:10px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#534AB7;">📱 ペイトク加入率</div>
+            <div style="font-size:9px;color:#aaa;">目標 <input type="number" step="0.1" value="${tgt}" style="width:44px;font-size:11px;padding:1px 4px;border:1px solid #e0e0e0;border-radius:4px;" onchange="shopSettings['${cur}'].paytokuTarget=+this.value;saveData();renderChar()">% ／ 市場平均 ${mktRate}%</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px;font-weight:700;color:#534AB7;">${rate?rate+"%":"－"}</div>
+            ${mktRate&&rate?`<div style="font-size:11px;font-weight:600;" class="${gc}">${gs} vs市場</div>`:""}
+          </div>
+        </div>`;
+      })()}
+    </div>
+
+    <div class="card">
+      <div class="sec-title">💴 収益商材　月間進捗</div>
+      <div style="font-size:10px;color:#aaa;margin-bottom:6px;">カード・セレクション単価・Pixelはスプレッド同期ボタンで自動反映</div>
+      ${buildGAPTable()}
+    </div>
+
+    <div class="card">
+      <div class="sec-title">✅ 自発的Todo <span style="font-weight:400;color:#aaa;font-size:10px;margin-left:6px;">${selfDone}/${SELF_TODOS.length}完了　毎日0時リセット</span></div>
+      ${selfTodoH}
+      <div class="sec-title" style="margin-top:10px;">📝 自分でTodo追加（最大8個）</div>
+      ${customH}
+      ${(s.customTodos||[]).length<8?`<div class="todo-input-row"><input class="todo-input" id="cti" placeholder="新しいTodoを入力..." onkeydown="if(event.key==='Enter')addCustomTodo()"><button class="todo-add-btn" onclick="addCustomTodo()">追加</button></div>`:`<div style="font-size:11px;color:#aaa;margin-top:4px;">8個に達しました</div>`}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="sec-title" style="margin-bottom:0;">🔄 ルーティンTodo <span style="font-weight:400;color:#aaa;font-size:10px;margin-left:4px;">${routineDone}/${ROUTINE_TODOS.length}完了　毎日リセット</span></div>
+        <button onclick="syncFromSpreadsheet('${cur}')" style="padding:5px 10px;background:#E1F5EE;color:#085041;border:1px solid #5DCAA5;border-radius:8px;font-size:10px;font-weight:500;cursor:pointer;">🔄 同期</button>
+      </div>
+      <div id="sync-status-${cur}" style="font-size:10px;color:#888;margin-bottom:6px;">${sheetName?"シート："+sheetName:"J管理画面でシート名を設定してください"}</div>
+      ${routineTodoH}
+    </div>
+
+    <div class="card"><div class="sec-title">📋 ログ</div><div class="log-list">${[...logs].reverse().slice(0,15).map(l=>`<div class="li ${l.type}">${l.text}</div>`).join("")}</div></div>
+  `;
+
+  updateBGMIfNeeded(sk);
+  const pxl=document.getElementById("pxl");
+  if(pxl) pxl.appendChild(drawPixelChar(sk,cur));
+}
+
+function toggleIchiba(mat,type){
+  if(!state[cur].ichiba)state[cur].ichiba={};
+  if(!state[cur].ichiba[mat])state[cur].ichiba[mat]={w:0,l:0};
+  const ch=CHARS.find(c=>c.id===cur);
+  state[cur].lastActionDate=todayKey();
+  if(type==="w"){state[cur].ichiba[mat].w++;state[cur].pts+=5;logs.push({text:`${ch.name} ${mat} 勝利+5pt`,type:"g"});}
+  else{state[cur].ichiba[mat].l++;state[cur].pts-=5;logs.push({text:`${ch.name} ${mat} 敗北-5pt`,type:"b"});}
+  saveData();renderChar();
+}
+
+// ===== エクセル読み込み（市場実績）=====
+function handleIchibaExcel(input){
+  const file=input.files[0]; if(!file) return;
+  const status=document.getElementById("excel-status");
+  status.textContent="読み込み中...";
+
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:"array"});
+
+      // ===== 各種実績シート =====
+      const ws=wb.Sheets[wb.SheetNames.find(n=>n.includes("各種実績"))||wb.SheetNames[0]];
+      const json=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+
+      const get=(row,col)=>{const v=row[col];return isNaN(parseFloat(v))?0:parseFloat(v)||0;};
+
+      // 中四国CNC行 → 市場平均（目標・累計）
+      const cncRow=json.find(r=>r&&r[12]==="中四国CNC");
+      if(cncRow){
+        Object.entries(ICHIBA_COLS).forEach(([name,[tCol,aCol]])=>{
+          if(!ichibaData[name])ichibaData[name]={national_target:0,national_actual:0,results:{}};
+          ichibaData[name].national_target=get(cncRow,tCol);
+          ichibaData[name].national_actual=get(cncRow,aCol);
+        });
+      }
+
+      // 各店舗の実績を反映（店舗名で部分一致）
+      let updated=0;
+      CHARS.forEach(c=>{
+        const storeName=(shopSettings[c.id].name||"").replace(/^[SYP]/,"").trim();
+        if(!storeName)return;
+        const row=json.find((r,i)=>i>3&&r[12]&&String(r[12]).includes(storeName));
+        if(!row)return;
+
+        if(!state[c.id].badges)state[c.id].badges={};
+        Object.entries(ICHIBA_COLS).forEach(([name,[tCol,aCol]])=>{
+          const badgeId={
+            "MNP":"mnp","YS":"ys","SB機変":"sb_kihenn","YM機変":"ym_kihen","固定":"kotei"
+          }[name];
+          if(!state[c.id].badges[badgeId])state[c.id].badges[badgeId]={target:0,actual:0};
+          state[c.id].badges[badgeId].target=get(row,tCol);
+          state[c.id].badges[badgeId].actual=get(row,aCol);
+          if(!ichibaData[name].results)ichibaData[name].results={};
+          ichibaData[name].results[c.id]=get(row,aCol);
+        });
+        logs.push({text:`${c.name} 市場実績反映完了`,type:"g"});
+        updated++;
+      });
+
+      // ===== ペイトクシート =====
+      const wsP=wb.Sheets[wb.SheetNames.find(n=>n.includes("ペイトク"))];
+      if(wsP){
+        const jsonP=XLSX.utils.sheet_to_json(wsP,{header:1,defval:""});
+        // 全国行（r[12]==='全国'）のBE列(JS56)=累計|機変ペイトク加入率 60.6% を市場平均として使用
+        const zenPayRow=jsonP.find(r=>r&&r[12]==="全国");
+        if(zenPayRow){
+          const rate=parseFloat(zenPayRow[56])||0;
+          ichibaData["ペイトク_市場加入率"]=Math.round(rate*1000)/10;
+        }
+        // 各店舗の累計|機変ペイトク 加入率
+        CHARS.forEach(c=>{
+          const storeName=(shopSettings[c.id].name||"").replace(/^[SYP]/,"").trim();
+          if(!storeName)return;
+          const row=jsonP.find((r,i)=>i>3&&r[12]&&String(r[12]).includes(storeName));
+          if(!row)return;
+          const rate=parseFloat(row[56])||0; // 累計|機変ペイトク 加入率
+          if(!state[c.id].paytoku)state[c.id].paytoku={rate:0,target:0};
+          state[c.id].paytoku.rate=Math.round(rate*1000)/10;
+        });
+      }
+
+      saveData();
+      status.innerHTML=`✅ ${updated}名分の市場実績を反映しました！<br><span style="font-size:10px;color:#aaa">ファイル：${file.name}</span>`;
+      if(mode==="game")renderChar();
+    }catch(err){
+      status.textContent="❌ 読み込みエラー："+err.message;
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+CHARS.forEach(c=>{setInterval(()=>{
+  if(checkNeglect(c.id)){
+    state[c.id].pts-=5;state[c.id].mood=clamp(state[c.id].mood-8);
+    logs.push({text:`[自動] ${c.name} 出勤日未更新-5pt`,type:"w"});
+    saveData();if(c.id===cur)renderChar();
+  }
+},60000);});
+
+renderTabs();renderChar();
+</script>
+</body>
+</html>
+<script>
+// ===== BGM (Web Audio API ピコピコ) =====
+let bgmCtx=null,bgmPlaying=false,bgmNodes=[],bgmScheduled=false;
+let bgmCurrentStage="";
+
+// ノート周波数 (equal temperament)
+const N={
+  C3:130.8,D3:146.8,E3:164.8,F3:174.6,G3:196,A3:220,B3:246.9,
+  C4:261.6,D4:293.7,E4:329.6,F4:349.2,G4:392,A4:440,B4:493.9,
+  C5:523.3,D5:587.3,E5:659.3,F5:698.5,G5:784,A5:880,B5:987.8,
+  C6:1046.5,_:0
+};
+
+// === BGM定義: [周波数, 音長(秒), 波形] ===
+// s0/s1/s2/s3: 明るいポップ
+const BGM_NORMAL=[
+  [N.C4,.12,"square"],[N.E4,.12,"square"],[N.G4,.12,"square"],[N.C5,.18,"square"],
+  [N._,.06,""],[N.G4,.12,"square"],[N.E4,.12,"square"],[N.C4,.12,"square"],
+  [N.D4,.12,"square"],[N.F4,.12,"square"],[N.A4,.12,"square"],[N.D5,.18,"square"],
+  [N._,.06,""],[N.A4,.12,"square"],[N.F4,.12,"square"],[N.D4,.12,"square"],
+  [N.E4,.12,"square"],[N.G4,.12,"square"],[N.B4,.12,"square"],[N.E5,.12,"square"],
+  [N.G5,.12,"square"],[N.E5,.12,"square"],[N.C5,.12,"square"],[N.G4,.12,"square"],
+  [N.C5,.12,"square"],[N.B4,.12,"square"],[N.A4,.12,"square"],[N.G4,.24,"square"],
+  [N._,.12,""],
+];
+// s4: お祝いファンファーレ風
+const BGM_WIN=[
+  [N.C4,.08,"square"],[N.C4,.08,"square"],[N.C4,.08,"square"],
+  [N.C4,.18,"square"],[N.E4,.18,"square"],[N.G4,.18,"square"],[N.C5,.3,"square"],
+  [N._,.1,""],
+  [N.G4,.08,"square"],[N.A4,.08,"square"],[N.G4,.08,"square"],
+  [N.E4,.18,"square"],[N.G4,.18,"square"],[N.C5,.18,"square"],[N.E5,.3,"square"],
+  [N._,.1,""],
+  [N.C5,.12,"square"],[N.B4,.12,"square"],[N.A4,.12,"square"],[N.G4,.12,"square"],
+  [N.A4,.12,"square"],[N.B4,.12,"square"],[N.C5,.12,"square"],[N.E5,.12,"square"],
+  [N.G5,.36,"square"],[N._,.12,""],
+];
+// neg: 暗くてゆっくり
+const BGM_SAD=[
+  [N.A3,.2,"triangle"],[N._,.05,""],[N.G3,.2,"triangle"],[N._,.05,""],
+  [N.F3,.2,"triangle"],[N._,.05,""],[N.E3,.3,"triangle"],[N._,.1,""],
+  [N.D3,.2,"triangle"],[N._,.05,""],[N.E3,.2,"triangle"],[N._,.05,""],
+  [N.F3,.2,"triangle"],[N._,.05,""],[N.G3,.4,"triangle"],[N._,.15,""],
+  [N.A3,.15,"triangle"],[N.G3,.15,"triangle"],[N.F3,.15,"triangle"],
+  [N.E3,.15,"triangle"],[N.D3,.4,"triangle"],[N._,.2,""],
+];
+
+function getBGMForStage(sk){
+  if(sk==="s4") return BGM_WIN;
+  if(sk==="neg") return BGM_SAD;
+  return BGM_NORMAL;
+}
+
+function initAudio(){
+  if(!bgmCtx) bgmCtx=new(window.AudioContext||window.webkitAudioContext)();
+}
+
+function playBGMLoop(notes,startTime){
+  if(!bgmPlaying||!bgmCtx) return;
+  let t=startTime;
+  notes.forEach(([freq,dur,wave])=>{
+    if(!freq||!wave){t+=dur;return;}
+    const osc=bgmCtx.createOscillator();
+    const gain=bgmCtx.createGain();
+    osc.connect(gain);gain.connect(bgmCtx.destination);
+    osc.type=wave;
+    osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0.07,t);
+    gain.gain.exponentialRampToValueAtTime(0.001,t+dur*0.9);
+    osc.start(t);osc.stop(t+dur);
+    bgmNodes.push(osc);
+    t+=dur;
+  });
+  // ループ
+  const loopId=setTimeout(()=>{
+    if(bgmPlaying) playBGMLoop(notes,bgmCtx.currentTime+0.05);
+  },(t-bgmCtx.currentTime-0.1)*1000);
+  bgmNodes.push({stop:()=>clearTimeout(loopId)});
+}
+
+function stopBGM(){
+  bgmNodes.forEach(n=>{try{if(n.stop)n.stop(0);}catch(e){}});
+  bgmNodes=[];
+}
+
+function startBGM(sk){
+  if(!bgmCtx)initAudio();
+  if(bgmCtx.state==="suspended")bgmCtx.resume();
+  stopBGM();
+  bgmCurrentStage=sk;
+  const notes=getBGMForStage(sk);
+  playBGMLoop(notes,bgmCtx.currentTime+0.05);
+}
+
+function toggleBGM(){
+  initAudio();
+  if(bgmCtx.state==="suspended")bgmCtx.resume();
+  bgmPlaying=!bgmPlaying;
+  const btn=document.getElementById("bgm-btn");
+  if(bgmPlaying){
+    btn.textContent="🎵";btn.style.opacity="1";
+    const sk=stageKey(state[cur]?.pts||0);
+    startBGM(sk);
+  } else {
+    btn.textContent="🔇";btn.style.opacity="0.5";
+    stopBGM();
+  }
+}
+
+// ステージ変化時にBGM切り替え
+function updateBGMIfNeeded(sk){
+  if(!bgmPlaying) return;
+  if(sk!==bgmCurrentStage) startBGM(sk);
+}
+</script>
+<script>
+// ===== GASフック =====
+
+// キャラ情報ヘルパー
+function gasCharInfo(id){
+  const c=CHARS.find(x=>x.id===id);
+  return {charId:id,charName:c?.name||id,shopName:shopSettings[id]?.name||""};
+}
+function gasFormName(id){return getForm(id)?.name||"";}
+
+// pt変動ログ送信
+function gasSendPt(charId,delta,reason){
+  const s=state[charId];
+  postToGAS("pt",{...gasCharInfo(charId),delta,reason,totalPts:s.pts,formName:gasFormName(charId)});
+}
+
+// Todo完了ログ送信
+function gasSendTodo(charId,todoId,label,kind,pts,done){
+  postToGAS("todo",{...gasCharInfo(charId),todoId,label,kind,pts,done});
+}
+
+// 気分ログ送信
+function gasSendMood(charId,icon,comment,time){
+  postToGAS("mood",{...gasCharInfo(charId),icon,comment,time});
+}
+
+// 市場実績スナップショット送信
+function gasSendIchiba(charId){
+  const s=state[charId];
+  const b=s.badges||{};
+  postToGAS("ichiba",{
+    ...gasCharInfo(charId),
+    mnpTarget:b.mnp?.target||0,    mnpActual:b.mnp?.actual||0,
+    ysTarget:b.ys?.target||0,      ysActual:b.ys?.actual||0,
+    sbTarget:b.sb_kihenn?.target||0,sbActual:b.sb_kihenn?.actual||0,
+    ymTarget:b.ym_kihen?.target||0, ymActual:b.ym_kihen?.actual||0,
+    koteiTarget:b.kotei?.target||0, koteiActual:b.kotei?.actual||0,
+    paytokuRate:s.paytoku?.rate||0,
+  });
+}
+
+// 収益商材スナップショット送信
+function gasSendRevenue(charId){
+  const s=state[charId];
+  REVENUE.forEach(name=>{
+    const rv=s.revenue[name]||{target:0,actual:0};
+    if(rv.target||rv.actual){
+      postToGAS("revenue",{...gasCharInfo(charId),name,target:rv.target,actual:rv.actual});
+    }
+  });
+}
+
+// 日次スナップショット送信（全キャラ）
+function gasSendDailyAll(){
+  CHARS.forEach(c=>{
+    const s=state[c.id];
+    const b=s.badges||{};
+    postToGAS("daily",{
+      ...gasCharInfo(c.id),
+      pts:s.pts, formName:gasFormName(c.id),
+      loyalty:Math.round(s.loyalty), energy:Math.round(s.energy), mood:Math.round(s.mood),
+      mnpActual:b.mnp?.actual||0, ysActual:b.ys?.actual||0,
+      sbActual:b.sb_kihenn?.actual||0, ymActual:b.ym_kihen?.actual||0,
+      koteiActual:b.kotei?.actual||0, paytokuRate:s.paytoku?.rate||0,
+    });
+  });
+}
+
+// ===== 既存関数にGASフックを注入 =====
+const _origToggleSelf=toggleSelfTodo;
+toggleSelfTodo=function(id){
+  const s=state[cur],was=s.selfTodos[id],t=SELF_TODOS.find(x=>x.id===id);
+  _origToggleSelf(id);
+  gasSendTodo(cur,id,t.label,"自発的",t.pts,!was);
+  if(!was) gasSendPt(cur,t.pts,`自発的Todo:${t.label}`);
+  else     gasSendPt(cur,-t.pts,`自発的Todo取消:${t.label}`);
+};
+
+const _origToggleRoutine=toggleRoutineTodo;
+toggleRoutineTodo=function(id){
+  const s=state[cur],was=s.routineTodos[id],t=ROUTINE_TODOS.find(x=>x.id===id);
+  _origToggleRoutine(id);
+  gasSendTodo(cur,id,t.label,"ルーティン",t.pts,!was);
+  if(!was) gasSendPt(cur,t.pts,`ルーティンTodo:${t.label}`);
+  else     gasSendPt(cur,-t.pts,`ルーティンTodo取消:${t.label}`);
+};
+
+const _origSaveMood=saveMoodEntry;
+saveMoodEntry=function(){
+  _origSaveMood();
+  const s=state[cur];
+  gasSendMood(cur,s.moodIcon,s.moodComment,s.moodUpdatedAt);
+};
+
+// 市場実績エクセル反映後にもGAS送信
+const _origHandleExcel=handleIchibaExcel;
+handleIchibaExcel=function(input){
+  _origHandleExcel(input);
+  setTimeout(()=>{
+    CHARS.forEach(c=>{gasSendIchiba(c.id);gasSendRevenue(c.id);});
+  },2000);
+};
+
+// スプレッド同期後にも収益実績を送信
+const _origSync=syncFromSpreadsheet;
+syncFromSpreadsheet=async function(charId){
+  await _origSync(charId);
+  gasSendRevenue(charId);
+};
+
+// 毎日0時に日次スナップショット送信
+(function scheduleDailySnapshot(){
+  const now=new Date();
+  const msTo0=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,1,0)-now;
+  setTimeout(()=>{
+    gasSendDailyAll();
+    setInterval(gasSendDailyAll,86400000);
+  },msTo0);
+})();
+
+// 管理画面にGAS URL設定欄を追加
+const _origRenderAdmin=renderAdmin;
+renderAdmin=function(){
+  _origRenderAdmin();
+  if(adminTab==="shop"){
+    const el=document.getElementById("admin-shop");
+    if(el&&!document.getElementById("gas-url-row")){
+      el.insertAdjacentHTML("afterbegin",`
+        <div id="gas-url-row" style="background:#EEEDFE;border-radius:10px;padding:10px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:600;color:#534AB7;margin-bottom:6px;">🔗 スプレッドシート連携 (GAS URL)</div>
+          <div style="font-size:11px;color:#666;margin-bottom:6px;">GASをデプロイしてWebアプリURLを貼り付けてください</div>
+          <div style="display:flex;gap:6px;">
+            <input id="gas-url-input" type="text" placeholder="https://script.google.com/macros/s/..." value="${GAS_URL}"
+              style="flex:1;font-size:11px;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;outline:none;">
+            <button onclick="saveGasUrl()" style="padding:6px 12px;background:#534AB7;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">保存</button>
+            <button onclick="testGasConnection()" style="padding:6px 10px;background:#E1F5EE;color:#085041;border:1px solid #5DCAA5;border-radius:6px;font-size:11px;cursor:pointer;">疎通確認</button>
+          </div>
+          <div id="gas-status" style="font-size:10px;color:#888;margin-top:4px;"></div>
+        </div>`);
+    }
+  }
+};
+
+function saveGasUrl(){
+  const v=document.getElementById("gas-url-input")?.value.trim()||"";
+  // GAS_URLはconstなのでlocalStorageに保存して次回読み込み
+  localStorage.setItem("tsg3_gas_url",v);
+  // 動的に上書き（同セッション内で有効）
+  window.GAS_URL_RUNTIME=v;
+  document.getElementById("gas-status").textContent="✅ 保存しました！次回起動から有効です";
+}
+
+async function testGasConnection(){
+  const url=window.GAS_URL_RUNTIME||localStorage.getItem("tsg3_gas_url")||GAS_URL;
+  const el=document.getElementById("gas-status");
+  if(!url){el.textContent="❌ URLが未設定です";return;}
+  el.textContent="確認中...";
+  try{
+    const r=await fetch(url,{method:"GET",mode:"no-cors"});
+    el.textContent="✅ 接続できました！";
+  }catch(e){
+    el.textContent="⚠️ 接続失敗（URLを確認してください）";
+  }
+}
+
+// postToGAS を動的URL対応に上書き
+const _origPost=postToGAS;
+postToGAS=async function(type,data){
+  const url=window.GAS_URL_RUNTIME||localStorage.getItem("tsg3_gas_url")||GAS_URL;
+  if(!url)return;
+  try{
+    await fetch(url,{
+      method:"POST",mode:"no-cors",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({type,...data})
+    });
+  }catch(e){console.warn("GAS送信失敗:",e);}
+};
+
+// 起動時にGAS URLを復元
+window.GAS_URL_RUNTIME=localStorage.getItem("tsg3_gas_url")||"";
+</script>
